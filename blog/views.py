@@ -6,7 +6,7 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
 from .models import Profile
 from django.core.paginator import Paginator
-from .models import Post
+from .models import Post, Like, Comment
 from django.utils import timezone
 from .forms import ProfileForm, PostForm, CommentForm
 
@@ -176,5 +176,10 @@ def comment_delete(request, comment_id):
         return redirect('post_detail', post_id=post_id)
     return render(request, 'blog/comment_confirm_delete.html', {'comment': comment})
 
+@login_required
 def like_post(request, post_id):
-    return HttpResponse(f"Лайк поста №{post_id}")
+    post = get_object_or_404(Post, id=post_id)
+    like, created = Like.objects.get_or_create(post=post, user=request.user)
+    if not created:
+        like.delete()
+    return redirect(request.META.get('HTTP_REFERER', 'home'))
