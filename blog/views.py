@@ -7,11 +7,12 @@ from django.contrib.auth.models import User
 from .models import Profile
 from django.core.paginator import Paginator
 from .models import Post
-from .forms import ProfileForm
+from django.utils import timezone
+from .forms import ProfileForm, PostForm
 
 def home(request):
-    posts = Post.objects.select_related('author').order_by('-created_at')
-    paginator = Paginator(posts, 10)  # Пока 10, потом можно 50
+    posts = Post.objects.select_related('author').order_by('-created_at')[:50]
+    paginator = Paginator(posts, 10)
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
     return render(request, 'blog/home.html', {'page_obj': page_obj})
@@ -91,17 +92,45 @@ def profile_delete(request):
         return redirect('home')
     return render(request, 'blog/profile_delete.html')
 
+@login_required
 def post_create(request):
-    return HttpResponse("Создание поста")
+    if request.method == 'POST':
+        form = PostForm(request.POST)
+        if form.is_valid():
+            post = form.save(commit=False)
+            post.author = request.user
+            post.save()
+            messages.success(request, 'Пост опубликован!')
+            return redirect('post_detail', post_id=post.id)
+    else:
+        form = PostForm()
+    return render(request, 'blog/post_form.html', {'form': form, 'title': 'Новый пост'})
 
 def post_detail(request, post_id):
-    return HttpResponse(f"Пост №{post_id}")
+    post = get_object_or_404(Post, id=post_id)
+    return render(request, 'blog/post_detail.html', {'post': post})
 
+@login_required
 def post_edit(request, post_id):
-    return HttpResponse(f"Редактирование поста №{post_id}")
+    post = get_object_or_404(Post, id=post_id, author=request.user)
+    if request.method == 'POST':
+        form = PostForm(request.POST, instance=post)
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'Пост обновлён!')
+            return redirect('post_detail', post_id=post.id)
+    else:
+        form = PostForm(instance=post)
+    return render(request, 'blog/post_form.html', {'form': form, 'title': 'Редактировать пост'})
 
+@login_required
 def post_delete(request, post_id):
-    return HttpResponse(f"Удаление поста №{post_id}")
+    post = get_object_or_404(Post, id=post_id, author=request.user)
+    if request.method == 'POST':
+        post.delete()
+        messages.success(request, 'Пост удалён.')
+        return redirect('profile_view', user_id=request.user.id)
+    return render(request, 'blog/post_confirm_delete.html', {'post': post})
 
 def comment_edit(request, comment_id):
     return HttpResponse(f"Редактирование комментария №{comment_id}")
