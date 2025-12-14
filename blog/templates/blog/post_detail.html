@@ -7,34 +7,36 @@
   </div>
   <div class="post-content">{{ post.content|linebreaks }}</div>
   <div class="post-actions">
-    <form method="post" action="{% url 'like_post' post.id %}">
-      {% csrf_token %}
-      <button type="submit" class="like-btn {% if post.liked %}liked{% endif %}">
-        {% if post.liked %}❤️ (Отменить){% else %}💙 (Лайкнуть){% endif %}
-      </button>
-    </form>
+    {% if user.is_authenticated %}
+      <form method="post" action="{% url 'like_post' post.id %}">
+        {% csrf_token %}
+        <button type="submit" class="like-btn {% if post.liked %}liked{% endif %}">
+          {% if post.liked %}❤️ (Отменить){% else %}💙 (Лайкнуть){% endif %}
+        </button>
+      </form>
+    {% endif %}
     <span>❤️ {{ post.likes_count }} | 💬 {{ post.comments_count }}</span>
   </div>
   {% if user.is_authenticated and user == post.author %}
-    <div style="margin-top: 16px;">
+    <div class="post-actions">
       <a href="{% url 'post_edit' post.id %}" class="btn btn-secondary">Редактировать</a>
-      <a href="{% url 'post_delete' post.id %}" class="btn btn-danger" style="margin-left: 8px;">Удалить</a>
+      <a href="{% url 'post_delete' post.id %}" class="btn btn-danger">Удалить</a>
     </div>
   {% endif %}
 </article>
 
 <h2 id="comments">Комментарии ({{ comments|length }})</h2>
 {% for comment in comments %}
-  <article class="post-card" style="background: var(--mint);">
+  <article class="post-card" style="background-color: var(--mint);">
     <div class="post-header">
       <span class="post-author">{{ comment.author.username }}</span>
       <time>{{ comment.created_at|date:"d.m.Y H:i" }}</time>
     </div>
     <div class="post-content">{{ comment.content|linebreaks }}</div>
     {% if user.is_authenticated and user == comment.author %}
-      <div style="margin-top: 12px;">
+      <div class="post-actions">
         <a href="{% url 'comment_edit' comment.id %}" class="btn-link">Редактировать</a>
-        <a href="{% url 'comment_delete' comment.id %}" class="btn-link" style="margin-left: 12px; color: var(--btn-danger);">Удалить</a>
+        <a href="{% url 'comment_delete' comment.id %}" class="btn-link" style="color: var(--btn-danger);">Удалить</a>
       </div>
     {% endif %}
   </article>
@@ -47,9 +49,7 @@
     <h3>Оставить комментарий</h3>
     <form method="post" style="margin-top: 16px;">
       {% csrf_token %}
-      <div class="form-group">
-        {{ form.content }}
-      </div>
+      {{ form.content|safe }}
       <button type="submit" class="btn btn-primary">Отправить</button>
     </form>
   </div>
@@ -57,5 +57,5 @@
   <p><a href="{% url 'login' %}">Войдите</a>, чтобы оставить комментарий.</p>
 {% endif %}
 
-<a href="{% url 'home' %}" style="display: inline-block; margin-top: 20px;">Все посты</a>
+<a href="{% url 'home' %}" class="btn btn-secondary" style="display: inline-block; margin-top: 20px;">Все посты</a>
 {% endblock %}

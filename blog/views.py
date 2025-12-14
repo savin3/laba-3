@@ -8,7 +8,7 @@ from .models import Profile
 from django.core.paginator import Paginator
 from .models import Post
 from django.utils import timezone
-from .forms import ProfileForm, PostForm
+from .forms import ProfileForm, PostForm, CommentForm
 
 def home(request):
     posts = Post.objects.select_related('author').order_by('-created_at')[:50]
@@ -108,7 +108,28 @@ def post_create(request):
 
 def post_detail(request, post_id):
     post = get_object_or_404(Post, id=post_id)
-    return render(request, 'blog/post_detail.html', {'post': post})
+    comments = post.comments.select_related('author').order_by('created_at')
+
+    if request.user.is_authenticated:
+        if request.method == 'POST':
+            form = CommentForm(request.POST)
+            if form.is_valid():
+                comment = form.save(commit=False)
+                comment.post = post
+                comment.author = request.user
+                comment.save()
+                messages.success(request, 'Комментарий добавлен!')
+                return redirect('post_detail', post_id=post.id)
+        else:
+            form = CommentForm()
+    else:
+        form = None
+
+    return render(request, 'blog/post_detail.html', {
+        'post': post,
+        'comments': comments,
+        'form': form,
+    })
 
 @login_required
 def post_edit(request, post_id):
@@ -132,11 +153,28 @@ def post_delete(request, post_id):
         return redirect('profile_view', user_id=request.user.id)
     return render(request, 'blog/post_confirm_delete.html', {'post': post})
 
+@login_required
 def comment_edit(request, comment_id):
-    return HttpResponse(f"Редактирование комментария №{comment_id}")
+    comment = get_object_or_404(Comment, id=comment_id, author=request.user)
+    if request.method == 'POST':
+        form = CommentForm(request.POST, instance=comment)
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'Комментарий обновлён!')
+            return redirect('post_detail', post_id=comment.post.id)
+    else:
+        form = CommentForm(instance=comment)
+    return render(request, 'blog/comment_form.html', {'form': form, 'comment': comment})
 
+@login_required
 def comment_delete(request, comment_id):
-    return HttpResponse(f"Удаление комментария №{comment_id}")
+    comment = get_object_or_404(Comment, id=comment_id, author=request.user)
+    if request.method == 'POST':
+        post_id = comment.post.id
+        comment.delete()
+        messages.success(request, 'Комментарий удалён.')
+        return redirect('post_detail', post_id=post_id)
+    return render(request, 'blog/comment_confirm_delete.html', {'comment': comment})
 
 def like_post(request, post_id):
     return HttpResponse(f"Лайк поста №{post_id}")
