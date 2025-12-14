@@ -1,0 +1,29 @@
+{% extends 'blog/base_template.html' %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-6 col-lg-5">
+            <div class="card shadow-sm border-danger">
+                <div class="card-body">
+                    <h1 class="card-title text-center mb-4 text-danger">Удалить профиль</h1>
+
+                    <p class="text-center mb-4">
+                        Вы уверены, что хотите <strong>удалить свой аккаунт</strong>?<br>
+                        Это действие <strong>невозможно отменить</strong> — все ваши посты и данные будут удалены.
+                    </p>
+
+                    <form method="post">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-danger w-100 mb-3">Да, удалить аккаунт</button>
+                    </form>
+
+                    <div class="text-center">
+                        <a href="{% url 'profile_view' user.id %}" class="link-secondary">← Отмена</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
